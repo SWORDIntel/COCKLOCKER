@@ -4,23 +4,17 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use landlock::{
-    Access, AccessFs, Ruleset, RulesetAttr, RulesetCreatedAttr, RulesetStatus, ABI,
+    Access, AccessFs, PathBeneath, Ruleset, RulesetAttr, RulesetCreatedAttr, RulesetStatus, ABI,
 };
 use log::{error, info, warn};
-use nix::mount::{mount, MsFlags};
-use nix::sched::{clone, CloneFlags};
-use nix::sys::signal::Signal;
-use nix::unistd::{chdir, chroot, setgid, setuid, Gid, Uid};
 use seccompiler::{
-    BpfProgram, SeccompAction, SeccompCmpArgLen, SeccompCmpOp, SeccompCondition, SeccompFilter,
+    BpfProgram, SeccompAction, SeccompFilter,
     SeccompRule,
 };
-use std::collections::HashMap;
-use std::fs::{self, File};
-use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
+use std::collections::{BTreeMap, HashSet};
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -176,7 +170,7 @@ fn create_cockpit_seccomp_filter() -> Result<BpfProgram> {
         libc::SYS_getrandom,
     ];
 
-    let mut rules: HashMap<i64, Vec<SeccompRule>> = HashMap::new();
+    let mut rules: BTreeMap<i64, Vec<SeccompRule>> = BTreeMap::new();
 
     for syscall in allowed_syscalls {
         rules.insert(syscall, vec![]);
@@ -205,13 +199,15 @@ fn apply_landlock_restrictions(cockpit_path: &Path) -> Result<()> {
 
     // Allow read access to Cockpit installation
     let cockpit_access = AccessFs::from_read(abi);
-    ruleset = ruleset.add_rule(cockpit_access, cockpit_path)?;
+    let cockpit_fd = fs::File::open(cockpit_path).context("Failed to open Cockpit path")?;
+    ruleset = ruleset.add_rule(PathBeneath::new(&cockpit_fd, cockpit_access))?;
 
     // Allow limited write access to specific directories
     let log_path = PathBuf::from("/var/log/cockpit-hardened");
     if log_path.exists() {
         let log_access = AccessFs::WriteFile | AccessFs::MakeDir;
-        ruleset = ruleset.add_rule(log_access, &log_path)?;
+        let log_fd = fs::File::open(&log_path).context("Failed to open log path")?;
+        ruleset = ruleset.add_rule(PathBeneath::new(&log_fd, log_access))?;
     }
 
     // Restrict the calling thread
@@ -235,7 +231,7 @@ fn apply_landlock_restrictions(cockpit_path: &Path) -> Result<()> {
 }
 
 /// Setup network namespace with restricted access
-fn setup_network_namespace(bind_address: &str, port: u16) -> Result<()> {
+fn setup_network_namespace(_bind_address: &str, _port: u16) -> Result<()> {
     info!("Setting up network namespace...");
 
     // Create new network namespace
@@ -264,10 +260,9 @@ fn drop_capabilities() -> Result<()> {
     caps::clear(None, CapSet::Inheritable)?;
 
     // Set only essential capabilities
-    for cap in essential_caps {
-        caps::set(None, CapSet::Permitted, cap)?;
-        caps::set(None, CapSet::Effective, cap)?;
-    }
+    let caps_set: HashSet<_> = essential_caps.into_iter().collect();
+    caps::set(None, CapSet::Permitted, &caps_set)?;
+    caps::set(None, CapSet::Effective, &caps_set)?;
 
     info!("Capabilities dropped successfully");
     Ok(())
