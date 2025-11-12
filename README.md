@@ -5,8 +5,13 @@
 [![Kernel: 5.13+](https://img.shields.io/badge/Kernel-5.13+-blue.svg)](KERNEL_CONFIG.md)
 [![Security: APT-Level](https://img.shields.io/badge/Security-APT--Level-red.svg)](MISSION.md)
 [![Integration: Kernel Suite Ready](https://img.shields.io/badge/Integration-Kernel%20Suite%20Ready-green.svg)](kernel-integration/INTEGRATION.md)
+[![Entry Point: v1.0](https://img.shields.io/badge/Entry%20Point-v1.0%20Enhanced-brightgreen.svg)](ENTRY_POINT.md)
 
 CockLocker provides comprehensive security hardening for Cockpit, implementing defense-in-depth measures against Advanced Persistent Threats (APTs). Inspired by the ImageHarden project, CockLocker combines compile-time hardening, kernel-level sandboxing, real-time threat detection, and Xen hypervisor-specific protections.
+
+> **📌 NEW:** **Unified Master Entry Point** - Start here: [`./cocklocker.sh`](ENTRY_POINT.md)
+>
+> All operations now flow through a single, well-documented entry point with CPU SIMD detection, flexible build options, and comprehensive end-to-end workflows. See [ENTRY_POINT.md](ENTRY_POINT.md) for complete documentation.
 
 **🎯 Designed for dual deployment:**
 1. **Standalone**: Deploy hardened Cockpit directly on your system
@@ -52,47 +57,50 @@ CockLocker provides comprehensive security hardening for Cockpit, implementing d
 
 - Debian-based Linux system (Ubuntu 22.04+, Debian 12+)
 - Kernel 5.13+ with Landlock support - see [KERNEL_CONFIG.md](KERNEL_CONFIG.md)
-- Rust toolchain (1.70+)
-- Root/sudo access
-- 2GB free disk space (for build)
+- Rust toolchain (1.70+) - optional but recommended for sandbox
+- Root/sudo access for installation
+- 2-3 GB free disk space (for build)
 
-### Installation
+### Installation (Recommended)
 
 ```bash
 # Clone with nested submodules (includes Cockpit)
 git clone --recurse-submodules https://github.com/SWORDIntel/COCKLOCKER.git
 cd COCKLOCKER
 
-# Verify kernel compatibility
-sudo ./kernel-integration/verify-kernel.sh
+# ✨ UNIFIED ENTRY POINT - All operations flow through ./cocklocker.sh
+#
+# 1. Detect CPU SIMD capabilities (AVX2/AVX512)
+./cocklocker.sh detect-cpu
 
-# Build hardened Cockpit
-sudo ./build_hardened_cockpit.sh
+# 2. Build hardened Cockpit with AVX2 optimization (recommended)
+./cocklocker.sh build --with-simd=avx2
 
-# Build Rust sandbox
-cd sandbox
-cargo build --release
-cd ..
+# 3. Install to system (requires root)
+sudo ./cocklocker.sh install
 
-# Configure firewall (review and customize first!)
-sudo ./hardened_configs/firewall-rules.sh
+# 4. Verify security hardening
+./cocklocker.sh verify
 
-# Install and enable systemd service
-sudo cp /opt/cockpit-hardened/etc/systemd/system/cockpit-hardened.service \
-        /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable cockpit-hardened
+# 5. Start service
 sudo systemctl start cockpit-hardened
-
-# Start security monitoring (runs automatically with service)
-sudo python3 /opt/cockpit-hardened/monitoring/security_monitor.py &
+sudo systemctl enable cockpit-hardened
 ```
+
+**Time:** ~20 minutes
 
 ### Access
 
 Navigate to `https://localhost:9090` in your browser.
 
-**⚠️ Security Note**: By default, access is restricted to localhost only. Edit `hardened_configs/firewall-rules.sh` to allow remote access from trusted networks.
+**⚠️ Security Note**: By default, access is restricted to localhost (127.0.0.1) only. This is intentional for security. To allow remote access from trusted networks, see [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md).
+
+### For Detailed Documentation
+
+- **Quick Start:** See [QUICKSTART.md](QUICKSTART.md)
+- **Entry Point Reference:** See [ENTRY_POINT.md](ENTRY_POINT.md)
+- **Integration Guide:** See [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md)
+- **Kernel Integration:** See [kernel-integration/INTEGRATION.md](kernel-integration/INTEGRATION.md)
 
 ---
 
@@ -178,9 +186,13 @@ export INSTALL_ROOT="/opt/custom-kernel"   # Your install prefix
 export DESTDIR="/tmp/build-staging"        # For staged builds (optional)
 export BUILD_JOBS=$(nproc)
 
-# Build and integrate CockLocker
-echo "[*] Building CockLocker hardened Cockpit..."
-bash cocklocker/kernel-integration/integrate.sh
+# ✨ Use unified entry point for integration
+echo "[*] Integrating CockLocker hardened Cockpit..."
+./cocklocker/cocklocker.sh kernel-integrate || exit 1
+
+# Verify hardening
+echo "[*] Verifying security hardening..."
+./cocklocker/cocklocker.sh verify
 
 # ... package or install from $DESTDIR ...
 
