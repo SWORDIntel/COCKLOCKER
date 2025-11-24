@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xen Hypervisor Manager - CockLocker</title>
+    <link href="../base1/cockpit.css" rel="stylesheet" type="text/css">
+    <style>
+        :root {
+            --xen-orange: #f7931e;
+            --xen-dark: #2c3e50;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #3498db;
+            --paused: #9b59b6;
+        }
+
+        .xen-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header-banner {
+            background: linear-gradient(135deg, var(--xen-orange), #e67e22);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-banner h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--xen-dark);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .stat-card.running .stat-value { color: var(--success); }
+        .stat-card.paused .stat-value { color: var(--paused); }
+        .stat-card.stopped .stat-value { color: var(--danger); }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--xen-dark);
+        }
+
+        .panel-body {
+            padding: 20px;
+        }
+
+        .vm-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .vm-table th,
+        .vm-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .vm-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: var(--xen-dark);
+        }
+
+        .vm-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .vm-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .vm-status.running {
+            background: rgba(39, 174, 96, 0.1);
+            color: var(--success);
+        }
+
+        .vm-status.paused {
+            background: rgba(155, 89, 182, 0.1);
+            color: var(--paused);
+        }
+
+        .vm-status.blocked {
+            background: rgba(243, 156, 18, 0.1);
+            color: var(--warning);
+        }
+
+        .vm-status.shutdown,
+        .vm-status.dying,
+        .vm-status.crashed {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.running { background: var(--success); }
+        .status-dot.paused { background: var(--paused); }
+        .status-dot.blocked { background: var(--warning); }
+        .status-dot.shutdown { background: var(--danger); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .vm-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #ecf0f1;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.low { background: var(--success); }
+        .progress-fill.medium { background: var(--warning); }
+        .progress-fill.high { background: var(--danger); }
+
+        .resource-cell {
+            min-width: 120px;
+        }
+
+        .resource-value {
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--xen-dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dce4ec;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--xen-orange);
+            box-shadow: 0 0 0 3px rgba(247, 147, 30, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* Dom0 Info */
+        .dom0-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .dom0-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .dom0-item:last-child {
+            border-bottom: none;
+        }
+
+        .dom0-label {
+            color: #7f8c8d;
+        }
+
+        .dom0-value {
+            font-weight: 500;
+            color: var(--xen-dark);
+        }
+
+        /* Console */
+        .console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .console-output pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(39, 174, 96, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .alert-danger {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .alert-warning {
+            background: rgba(243, 156, 18, 0.1);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-banner {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vm-table {
+                font-size: 13px;
+            }
+
+            .vm-actions {
+                flex-direction: column;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ecf0f1;
+            border-top-color: var(--xen-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .no-xen {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .no-xen h2 {
+            color: var(--danger);
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="xen-container">
+        <!-- Alert Messages -->
+        <div id="alert-success" class="alert alert-success"></div>
+        <div id="alert-error" class="alert alert-danger"></div>
+        <div id="alert-warning" class="alert alert-warning"></div>
+
+        <!-- Header -->
+        <div class="header-banner">
+            <div>
+                <h1>Xen Hypervisor Manager</h1>
+                <p style="margin: 5px 0 0; opacity: 0.9;">Monitor and manage virtual machines</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-success" onclick="showCreateVMModal()">
+                    + Create VM
+                </button>
+                <button class="btn btn-primary" onclick="refreshAll()">
+                    ⟳ Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Connecting to Xen hypervisor...</p>
+        </div>
+
+        <!-- No Xen State -->
+        <div id="no-xen-state" class="no-xen" style="display: none;">
+            <h2>Xen Hypervisor Not Detected</h2>
+            <p>The Xen hypervisor is not running on this system.</p>
+            <p>Ensure you are running on a Xen Dom0 with the xl toolstack installed.</p>
+            <button class="btn btn-primary" onclick="refreshAll()">Retry Detection</button>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" style="display: none;">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card running">
+                    <div class="stat-value" id="stat-running">0</div>
+                    <div class="stat-label">Running VMs</div>
+                </div>
+                <div class="stat-card paused">
+                    <div class="stat-value" id="stat-paused">0</div>
+                    <div class="stat-label">Paused VMs</div>
+                </div>
+                <div class="stat-card stopped">
+                    <div class="stat-value" id="stat-stopped">0</div>
+                    <div class="stat-label">Stopped VMs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total-vcpus">0</div>
+                    <div class="stat-label">Total vCPUs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total-mem">0</div>
+                    <div class="stat-label">Total Memory (GB)</div>
+                </div>
+            </div>
+
+            <!-- Dom0 Info Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Dom0 (Privileged Domain)</h2>
+                    <span id="xen-version" style="color: #7f8c8d;"></span>
+                </div>
+                <div class="panel-body">
+                    <div class="dom0-info" id="dom0-info">
+                        <div class="dom0-item">
+                            <span class="dom0-label">Xen Version</span>
+                            <span class="dom0-value" id="dom0-xen-version">--</span>
+                        </div>
+                        <div class="dom0-item">
+                            <span class="dom0-label">Total CPUs</span>
+                            <span class="dom0-value" id="dom0-cpus">--</span>
+                        </div>
+                        <div class="dom0-item">
+                            <span class="dom0-label">Total Memory</span>
+                            <span class="dom0-value" id="dom0-memory">--</span>
+                        </div>
+                        <div class="dom0-item">
+                            <span class="dom0-label">Free Memory</span>
+                            <span class="dom0-value" id="dom0-free-mem">--</span>
+                        </div>
+                        <div class="dom0-item">
+                            <span class="dom0-label">Scheduler</span>
+                            <span class="dom0-value" id="dom0-scheduler">--</span>
+                        </div>
+                        <div class="dom0-item">
+                            <span class="dom0-label">Uptime</span>
+                            <span class="dom0-value" id="dom0-uptime">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Virtual Machines Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Virtual Machines (DomU)</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="vm-filter" class="form-control" style="width: auto;" onchange="filterVMs()">
+                            <option value="all">All VMs</option>
+                            <option value="running">Running</option>
+                            <option value="paused">Paused</option>
+                            <option value="blocked">Blocked</option>
+                            <option value="shutdown">Shutdown</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <table class="vm-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>ID</th>
+                                <th>Status</th>
+                                <th>vCPUs</th>
+                                <th class="resource-cell">CPU Usage</th>
+                                <th class="resource-cell">Memory</th>
+                                <th>Uptime</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vm-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                    <div id="no-vms" style="text-align: center; padding: 40px; color: #7f8c8d; display: none;">
+                        No virtual machines found.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Console Output Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Command Output</h2>
+                    <button class="btn btn-sm btn-secondary" onclick="clearConsole()">Clear</button>
+                </div>
+                <div class="panel-body">
+                    <div class="console-output" id="console-output">
+                        <pre>Ready for commands...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create VM Modal -->
+    <div class="modal-overlay" id="create-vm-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Create New Virtual Machine</h3>
+                <button class="modal-close" onclick="closeModal('create-vm-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-vm-form">
+                    <div class="form-group">
+                        <label>VM Name</label>
+                        <input type="text" class="form-control" id="vm-name" placeholder="my-vm" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>vCPUs</label>
+                            <input type="number" class="form-control" id="vm-vcpus" value="2" min="1" max="64">
+                        </div>
+                        <div class="form-group">
+                            <label>Memory (MB)</label>
+                            <input type="number" class="form-control" id="vm-memory" value="2048" min="256" step="256">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>VM Type</label>
+                        <select class="form-control" id="vm-type">
+                            <option value="pv">Paravirtualized (PV)</option>
+                            <option value="hvm">Hardware Virtual Machine (HVM)</option>
+                            <option value="pvh">PVH (Hybrid)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kernel (PV only)</label>
+                        <input type="text" class="form-control" id="vm-kernel" placeholder="/boot/vmlinuz">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Disk Image Path</label>
+                        <input type="text" class="form-control" id="vm-disk" placeholder="/var/lib/xen/images/my-vm.img">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Disk Size (GB)</label>
+                            <input type="number" class="form-control" id="vm-disk-size" value="20" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Network Bridge</label>
+                            <input type="text" class="form-control" id="vm-bridge" value="xenbr0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ISO/Boot Image (HVM)</label>
+                        <input type="text" class="form-control" id="vm-iso" placeholder="/path/to/install.iso">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="vm-autostart"> Start VM after creation
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('create-vm-modal')">Cancel</button>
+                <button class="btn btn-success" onclick="createVM()">Create VM</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Action Modal -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirm Action</h3>
+                <button class="modal-close" onclick="closeModal('confirm-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Are you sure you want to perform this action?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('confirm-modal')">Cancel</button>
+                <button class="btn btn-danger" id="confirm-btn" onclick="confirmAction()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../base1/cockpit.js"></script>
+    <script>
+        // Global state
+        let vmData = [];
+        let pendingAction = null;
+        let refreshInterval = null;
+
+        // Initialize
+        cockpit.transport.wait(function() {
+            checkXenAvailable();
+            // Auto-refresh every 5 seconds
+            refreshInterval = setInterval(refreshAll, 5000);
+        });
+
+        function checkXenAvailable() {
+            cockpit.spawn(["which", "xl"], { superuser: "try" })
+                .then(function() {
+                    return cockpit.spawn(["xl", "info"], { superuser: "try" });
+                })
+                .then(function(data) {
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    parseXenInfo(data);
+                    refreshAll();
+                })
+                .catch(function(err) {
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('no-xen-state').style.display = 'block';
+                    console.error("Xen not available:", err);
+                });
+        }
+
+        function parseXenInfo(data) {
+            const lines = data.split('\n');
+            const info = {};
+
+            lines.forEach(line => {
+                const parts = line.split(':');
+                if (parts.length >= 2) {
+                    const key = parts[0].trim();
+                    const value = parts.slice(1).join(':').trim();
+                    info[key] = value;
+                }
+            });
+
+            document.getElementById('dom0-xen-version').textContent = info['xen_version'] || '--';
+            document.getElementById('dom0-cpus').textContent = info['nr_cpus'] || '--';
+            document.getElementById('dom0-memory').textContent = formatBytes((parseInt(info['total_memory']) || 0) * 1024 * 1024);
+            document.getElementById('dom0-free-mem').textContent = formatBytes((parseInt(info['free_memory']) || 0) * 1024 * 1024);
+            document.getElementById('dom0-scheduler').textContent = info['xen_scheduler'] || '--';
+
+            // Calculate uptime
+            const xenUptime = parseInt(info['xen_uptime']) || 0;
+            document.getElementById('dom0-uptime').textContent = formatUptime(xenUptime);
+
+            document.getElementById('xen-version').textContent = 'Xen ' + (info['xen_version'] || '');
+        }
+
+        function refreshAll() {
+            getVMList();
+        }
+
+        function getVMList() {
+            cockpit.spawn(["xl", "list", "-l"], { superuser: "try" })
+                .then(function(data) {
+                    try {
+                        vmData = JSON.parse(data);
+                        renderVMTable();
+                        updateStats();
+                    } catch (e) {
+                        // Fallback to parsing xl list output
+                        parseXlList();
+                    }
+                })
+                .catch(function() {
+                    parseXlList();
+                });
+        }
+
+        function parseXlList() {
+            cockpit.spawn(["xl", "list"], { superuser: "try" })
+                .then(function(data) {
+                    const lines = data.trim().split('\n').slice(1); // Skip header
+                    vmData = [];
+
+                    lines.forEach(line => {
+                        const parts = line.trim().split(/\s+/);
+                        if (parts.length >= 6) {
+                            vmData.push({
+                                name: parts[0],
+                                domid: parseInt(parts[1]),
+                                memory: parseInt(parts[2]),
+                                vcpus: parseInt(parts[3]),
+                                state: parts[4],
+                                time: parseFloat(parts[5])
+                            });
+                        }
+                    });
+
+                    renderVMTable();
+                    updateStats();
+                })
+                .catch(function(err) {
+                    console.error("Failed to get VM list:", err);
+                    showAlert('error', 'Failed to retrieve VM list');
+                });
+        }
+
+        function renderVMTable() {
+            const tbody = document.getElementById('vm-table-body');
+            const filter = document.getElementById('vm-filter').value;
+
+            let filteredVMs = vmData.filter(vm => {
+                if (filter === 'all') return true;
+                const state = getStateLabel(vm.state || '').toLowerCase();
+                return state === filter;
+            });
+
+            if (filteredVMs.length === 0) {
+                tbody.innerHTML = '';
+                document.getElementById('no-vms').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('no-vms').style.display = 'none';
+
+            tbody.innerHTML = filteredVMs.map(vm => {
+                const name = vm.name || vm.config?.c_info?.name || 'Unknown';
+                const domid = vm.domid ?? vm.config?.domid ?? '-';
+                const state = vm.state || 'r';
+                const stateLabel = getStateLabel(state);
+                const vcpus = vm.vcpus || vm.config?.b_info?.max_vcpus || 1;
+                const memory = vm.memory || (vm.config?.b_info?.max_memkb / 1024) || 0;
+                const cpuTime = vm.time || 0;
+                const isDom0 = domid === 0;
+
+                // CPU usage estimation (simplified)
+                const cpuPercent = Math.min(Math.round((cpuTime % 100)), 100);
+                const cpuClass = cpuPercent < 50 ? 'low' : cpuPercent < 80 ? 'medium' : 'high';
+
+                // Memory usage (assume full allocation for now)
+                const memPercent = 100;
+                const memClass = 'low';
+
+                return `
+                    <tr data-vm="${name}" data-state="${stateLabel.toLowerCase()}">
+                        <td><strong>${escapeHtml(name)}</strong></td>
+                        <td>${domid}</td>
+                        <td>
+                            <span class="vm-status ${stateLabel.toLowerCase()}">
+                                <span class="status-dot ${stateLabel.toLowerCase()}"></span>
+                                ${stateLabel}
+                            </span>
+                        </td>
+                        <td>${vcpus}</td>
+                        <td class="resource-cell">
+                            <span class="resource-value">${cpuPercent}%</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${cpuClass}" style="width: ${cpuPercent}%"></div>
+                            </div>
+                        </td>
+                        <td class="resource-cell">
+                            <span class="resource-value">${memory} MB</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${memClass}" style="width: ${memPercent}%"></div>
+                            </div>
+                        </td>
+                        <td>${formatCpuTime(cpuTime)}</td>
+                        <td class="vm-actions">
+                            ${isDom0 ? '<span style="color:#7f8c8d;">Protected</span>' : `
+                                ${stateLabel === 'Running' ? `
+                                    <button class="btn btn-sm btn-warning" onclick="pauseVM('${escapeHtml(name)}')">Pause</button>
+                                    <button class="btn btn-sm btn-danger" onclick="confirmStopVM('${escapeHtml(name)}')">Stop</button>
+                                ` : ''}
+                                ${stateLabel === 'Paused' ? `
+                                    <button class="btn btn-sm btn-success" onclick="unpauseVM('${escapeHtml(name)}')">Resume</button>
+                                    <button class="btn btn-sm btn-danger" onclick="confirmStopVM('${escapeHtml(name)}')">Stop</button>
+                                ` : ''}
+                                ${stateLabel === 'Shutdown' || stateLabel === 'Blocked' ? `
+                                    <button class="btn btn-sm btn-success" onclick="startVM('${escapeHtml(name)}')">Start</button>
+                                    <button class="btn btn-sm btn-danger" onclick="confirmDestroyVM('${escapeHtml(name)}')">Destroy</button>
+                                ` : ''}
+                                <button class="btn btn-sm btn-secondary" onclick="showVMConsole('${escapeHtml(name)}')">Console</button>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            let running = 0, paused = 0, stopped = 0, totalVcpus = 0, totalMem = 0;
+
+            vmData.forEach(vm => {
+                const state = getStateLabel(vm.state || '').toLowerCase();
+                const isDom0 = (vm.domid === 0);
+
+                if (!isDom0) {
+                    if (state === 'running') running++;
+                    else if (state === 'paused') paused++;
+                    else stopped++;
+
+                    totalVcpus += vm.vcpus || 0;
+                    totalMem += vm.memory || 0;
+                }
+            });
+
+            document.getElementById('stat-running').textContent = running;
+            document.getElementById('stat-paused').textContent = paused;
+            document.getElementById('stat-stopped').textContent = stopped;
+            document.getElementById('stat-total-vcpus').textContent = totalVcpus;
+            document.getElementById('stat-total-mem').textContent = (totalMem / 1024).toFixed(1);
+        }
+
+        function getStateLabel(state) {
+            const stateMap = {
+                'r': 'Running',
+                'b': 'Blocked',
+                'p': 'Paused',
+                's': 'Shutdown',
+                'c': 'Crashed',
+                'd': 'Dying',
+                '-': 'Running'
+            };
+            return stateMap[state.charAt(0).toLowerCase()] || state;
+        }
+
+        function filterVMs() {
+            renderVMTable();
+        }
+
+        // VM Actions
+        function startVM(name) {
+            logConsole(`Starting VM: ${name}`);
+            cockpit.spawn(["xl", "create", `/etc/xen/${name}.cfg`], { superuser: "require" })
+                .then(function(output) {
+                    logConsole(`VM ${name} started successfully`);
+                    showAlert('success', `VM "${name}" started successfully`);
+                    refreshAll();
+                })
+                .catch(function(err) {
+                    logConsole(`Error starting ${name}: ${err.message}`);
+                    showAlert('error', `Failed to start VM: ${err.message}`);
+                });
+        }
+
+        function pauseVM(name) {
+            logConsole(`Pausing VM: ${name}`);
+            cockpit.spawn(["xl", "pause", name], { superuser: "require" })
+                .then(function() {
+                    logConsole(`VM ${name} paused`);
+                    showAlert('success', `VM "${name}" paused`);
+                    refreshAll();
+                })
+                .catch(function(err) {
+                    logConsole(`Error pausing ${name}: ${err.message}`);
+                    showAlert('error', `Failed to pause VM: ${err.message}`);
+                });
+        }
+
+        function unpauseVM(name) {
+            logConsole(`Resuming VM: ${name}`);
+            cockpit.spawn(["xl", "unpause", name], { superuser: "require" })
+                .then(function() {
+                    logConsole(`VM ${name} resumed`);
+                    showAlert('success', `VM "${name}" resumed`);
+                    refreshAll();
+                })
+                .catch(function() {
+                    showAlert('error', 'Failed to resume VM');
+                });
+        }
+
+        function confirmStopVM(name) {
+            pendingAction = { action: 'shutdown', name: name };
+            document.getElementById('confirm-title').textContent = 'Shutdown VM';
+            document.getElementById('confirm-message').textContent =
+                `Are you sure you want to shutdown "${name}"? This will send a graceful shutdown signal.`;
+            document.getElementById('confirm-btn').textContent = 'Shutdown';
+            document.getElementById('confirm-btn').className = 'btn btn-warning';
+            document.getElementById('confirm-modal').classList.add('active');
+        }
+
+        function confirmDestroyVM(name) {
+            pendingAction = { action: 'destroy', name: name };
+            document.getElementById('confirm-title').textContent = 'Destroy VM';
+            document.getElementById('confirm-message').textContent =
+                `Are you sure you want to forcefully destroy "${name}"? This may cause data loss!`;
+            document.getElementById('confirm-btn').textContent = 'Destroy';
+            document.getElementById('confirm-btn').className = 'btn btn-danger';
+            document.getElementById('confirm-modal').classList.add('active');
+        }
+
+        function confirmAction() {
+            if (!pendingAction) return;
+
+            const { action, name } = pendingAction;
+            closeModal('confirm-modal');
+
+            if (action === 'shutdown') {
+                logConsole(`Shutting down VM: ${name}`);
+                cockpit.spawn(["xl", "shutdown", name], { superuser: "require" })
+                    .then(function() {
+                        logConsole(`Shutdown signal sent to ${name}`);
+                        showAlert('success', `Shutdown signal sent to "${name}"`);
+                        refreshAll();
+                    })
+                    .catch(function(err) {
+                        showAlert('error', `Failed to shutdown VM: ${err.message}`);
+                    });
+            } else if (action === 'destroy') {
+                logConsole(`Destroying VM: ${name}`);
+                cockpit.spawn(["xl", "destroy", name], { superuser: "require" })
+                    .then(function() {
+                        logConsole(`VM ${name} destroyed`);
+                        showAlert('success', `VM "${name}" destroyed`);
+                        refreshAll();
+                    })
+                    .catch(function(err) {
+                        showAlert('error', `Failed to destroy VM: ${err.message}`);
+                    });
+            }
+
+            pendingAction = null;
+        }
+
+        function showVMConsole(name) {
+            logConsole(`Opening console for ${name}...`);
+            logConsole(`Use 'xl console ${name}' in terminal for interactive access`);
+
+            // Get dmesg-like output
+            cockpit.spawn(["xl", "dmesg"], { superuser: "try" })
+                .then(function(output) {
+                    logConsole("--- Xen dmesg (last 20 lines) ---");
+                    const lines = output.trim().split('\n').slice(-20);
+                    lines.forEach(line => logConsole(line));
+                })
+                .catch(function() {
+                    logConsole("Could not retrieve Xen dmesg");
+                });
+        }
+
+        // Create VM
+        function showCreateVMModal() {
+            document.getElementById('create-vm-modal').classList.add('active');
+        }
+
+        function createVM() {
+            const name = document.getElementById('vm-name').value.trim();
+            const vcpus = document.getElementById('vm-vcpus').value;
+            const memory = document.getElementById('vm-memory').value;
+            const vmType = document.getElementById('vm-type').value;
+            const kernel = document.getElementById('vm-kernel').value.trim();
+            const disk = document.getElementById('vm-disk').value.trim();
+            const diskSize = document.getElementById('vm-disk-size').value;
+            const bridge = document.getElementById('vm-bridge').value.trim();
+            const iso = document.getElementById('vm-iso').value.trim();
+            const autostart = document.getElementById('vm-autostart').checked;
+
+            if (!name) {
+                showAlert('error', 'VM name is required');
+                return;
+            }
+
+            // Generate config
+            let config = `# Xen VM Configuration: ${name}\n`;
+            config += `name = "${name}"\n`;
+            config += `memory = ${memory}\n`;
+            config += `vcpus = ${vcpus}\n`;
+
+            if (vmType === 'hvm') {
+                config += `type = "hvm"\n`;
+                config += `builder = "hvm"\n`;
+                if (iso) {
+                    config += `cdrom = "${iso}"\n`;
+                    config += `boot = "dc"\n`;
+                }
+                config += `vnc = 1\n`;
+                config += `vnclisten = "0.0.0.0"\n`;
+            } else if (vmType === 'pvh') {
+                config += `type = "pvh"\n`;
+                if (kernel) config += `kernel = "${kernel}"\n`;
+            } else {
+                config += `type = "pv"\n`;
+                if (kernel) config += `kernel = "${kernel}"\n`;
+            }
+
+            if (disk) {
+                config += `disk = ['${disk},raw,xvda,rw']\n`;
+            }
+
+            config += `vif = ['bridge=${bridge}']\n`;
+
+            logConsole(`Creating VM configuration for ${name}...`);
+            logConsole(config);
+
+            // Write config file
+            const configPath = `/etc/xen/${name}.cfg`;
+            cockpit.file(configPath, { superuser: "require" }).replace(config)
+                .then(function() {
+                    logConsole(`Config written to ${configPath}`);
+
+                    // Create disk if specified
+                    if (disk && diskSize) {
+                        logConsole(`Creating disk image: ${disk} (${diskSize}GB)`);
+                        return cockpit.spawn(
+                            ["dd", "if=/dev/zero", `of=${disk}`, "bs=1G", `count=${diskSize}`],
+                            { superuser: "require" }
+                        );
+                    }
+                    return Promise.resolve();
+                })
+                .then(function() {
+                    if (autostart) {
+                        logConsole(`Starting VM ${name}...`);
+                        return cockpit.spawn(["xl", "create", configPath], { superuser: "require" });
+                    }
+                    return Promise.resolve();
+                })
+                .then(function() {
+                    closeModal('create-vm-modal');
+                    showAlert('success', `VM "${name}" created successfully${autostart ? ' and started' : ''}`);
+                    refreshAll();
+                    document.getElementById('create-vm-form').reset();
+                })
+                .catch(function(err) {
+                    logConsole(`Error creating VM: ${err.message}`);
+                    showAlert('error', `Failed to create VM: ${err.message}`);
+                });
+        }
+
+        // Utility functions
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function showAlert(type, message) {
+            const alertEl = document.getElementById(`alert-${type}`);
+            alertEl.textContent = message;
+            alertEl.classList.add('show');
+
+            setTimeout(() => {
+                alertEl.classList.remove('show');
+            }, 5000);
+        }
+
+        function logConsole(message) {
+            const console = document.getElementById('console-output');
+            const pre = console.querySelector('pre');
+            const timestamp = new Date().toLocaleTimeString();
+            pre.textContent += `\n[${timestamp}] ${message}`;
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console-output').querySelector('pre').textContent = 'Console cleared.';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+
+            if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            return `${minutes}m`;
+        }
+
+        function formatCpuTime(seconds) {
+            if (seconds < 60) return `${seconds.toFixed(1)}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+            return `${Math.floor(seconds / 3600)}h`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+    "version": 0,
+    "require": {
+        "cockpit": "300"
+    },
+    "name": "xen-manager",
+    "priority": 100,
+    "menu": {
+        "index": {
+            "label": "Xen Hypervisor",
+            "order": 20,
+            "docs": [
+                {
+                    "label": "Xen Project Documentation",
+                    "url": "https://wiki.xenproject.org/wiki/Main_Page"
+                }
+            ],
+            "keywords": [
+                {
+                    "matches": ["xen", "hypervisor", "vm", "virtual machine", "domu", "dom0", "xentop", "xl"]
+                }
+            ]
+        }
+    },
+    "bridges": [
+        {
+            "match": { "payload": "dbus-json3" },
+            "privileged": true,
+            "problem": "not-authorized"
+        }
+    ],
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:"
+}
