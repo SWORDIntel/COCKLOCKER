@@ -1,34 +1,57 @@
 # COCKLOCKER
-**APT-Level Hardening Suite for Cockpit Web Management Interface**
+**Feature-Complete Cockpit Build with Intel Meteor Lake AI Optimization**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Kernel: 5.13+](https://img.shields.io/badge/Kernel-5.13+-blue.svg)](KERNEL_CONFIG.md)
 [![Security: APT-Level](https://img.shields.io/badge/Security-APT--Level-red.svg)](MISSION.md)
-[![Integration: Kernel Suite Ready](https://img.shields.io/badge/Integration-Kernel%20Suite%20Ready-green.svg)](kernel-integration/INTEGRATION.md)
-[![Entry Point: v1.0](https://img.shields.io/badge/Entry%20Point-v1.0%20Enhanced-brightgreen.svg)](ENTRY_POINT.md)
+[![Intel: Meteor Lake](https://img.shields.io/badge/Intel-Meteor%20Lake-0071c5.svg)](DOCUMENTATION/METEORLAKE_AI.md)
+[![AI: NPU Support](https://img.shields.io/badge/AI-NPU%20Support-green.svg)](DOCUMENTATION/METEORLAKE_AI.md)
+[![Build: 2.0](https://img.shields.io/badge/Build-v2.0%20Feature%20Complete-brightgreen.svg)](build_feature_complete.sh)
 
-CockLocker provides comprehensive security hardening for Cockpit, implementing defense-in-depth measures against Advanced Persistent Threats (APTs). Inspired by the ImageHarden project, CockLocker combines compile-time hardening, kernel-level sandboxing, real-time threat detection, and Xen hypervisor-specific protections.
+CockLocker provides a **feature-complete optimized build of Cockpit** with all official plugins, specifically optimized for **Intel Meteor Lake** processors with AI power management. It combines comprehensive security hardening with cutting-edge Intel hardware optimization including NPU acceleration, Thread Director integration, and RAPL power management.
 
-> **📌 NEW:** **Unified Master Entry Point** - Start here: [`./cocklocker.sh`](ENTRY_POINT.md)
+> **📌 NEW: v2.0 Feature-Complete Build** - Use [`./build_feature_complete.sh`](build_feature_complete.sh) for Meteor Lake optimization
 >
-> All operations now flow through a single, well-documented entry point with CPU SIMD detection, flexible build options, and comprehensive end-to-end workflows. See [ENTRY_POINT.md](ENTRY_POINT.md) for complete documentation.
+> Full Cockpit with all plugins, Intel NPU/AI power management, Thread Director optimization, and comprehensive security hardening.
 
-**🎯 Designed for dual deployment:**
-1. **Standalone**: Deploy hardened Cockpit directly on your system
-2. **Kernel Suite Integration**: Include as a nested submodule in kernel compilation projects
+**🎯 Designed for:**
+1. **Intel Meteor Lake** - Full NPU and hybrid core optimization
+2. **Feature-Complete Cockpit** - All official plugins included
+3. **Production Deployment** - Security hardened for enterprise use
+4. **Submodule Integration** - Use in larger kernel/system builds
 
 ## Features
 
-- 🛡️ **Compile-Time Hardening**: Comprehensive security flags (PIE, RELRO, stack protectors, CFI, FORTIFY_SOURCE, shadow stack)
-- 🔒 **Kernel-Level Sandboxing**: seccomp-bpf, Linux namespaces, and Landlock LSM
-- 👁️ **Real-Time Threat Detection**: APT-specific pattern matching and automated response
-- 🚫 **Network Hardening**: Firewall rules, rate limiting, and IP whitelisting
-- 🔐 **Authentication Hardening**: PAM configuration, account lockout, optional 2FA
-- 🖥️ **Xen Hypervisor Support**: VM escape prevention and inter-VM attack mitigation
-- 🔍 **Continuous Fuzzing**: AFL++ integration for vulnerability discovery
-- 📊 **Security Monitoring**: Real-time log analysis and incident response
-- ⚙️ **Kernel Suite Ready**: Nested submodule support with automated integration scripts
-- 📦 **Build Integration**: Non-interactive builds, DESTDIR support, reproducible
+### Intel Meteor Lake Optimization
+- 🧠 **Intel NPU Support**: Neural Processing Unit detection and power management
+- ⚡ **Thread Director**: Intelligent P-core/E-core workload scheduling
+- 📊 **RAPL Integration**: Running Average Power Limit power management
+- 🎯 **AVX-VNNI/AMX**: AI-optimized vector instructions for acceleration
+- 🌡️ **Thermal Management**: Real-time temperature monitoring and throttling
+
+### Complete Cockpit Stack
+- 🖥️ **cockpit-machines**: Virtual machine management (libvirt/QEMU/KVM)
+- 📦 **cockpit-podman**: Container management (Podman/OCI)
+- 💾 **cockpit-storaged**: Storage management (LVM, RAID, NFS)
+- 🌐 **cockpit-networkmanager**: Network configuration
+- 📥 **cockpit-packagekit**: Software updates
+- 🔧 **cockpit-selinux**: SELinux policy management
+- 📈 **cockpit-benchmark**: Performance testing
+- 📁 **cockpit-files**: Web-based file manager
+- 🏗️ **cockpit-composer**: OS image builder
+
+### Security Hardening
+- 🛡️ **Compile-Time Hardening**: PIE, RELRO, CFI, FORTIFY_SOURCE, Intel CET shadow stack
+- 🔒 **Kernel-Level Sandboxing**: seccomp-bpf, Landlock LSM, Linux namespaces
+- 👁️ **Real-Time Threat Detection**: APT-specific pattern matching, automated IP blocking
+- 🚫 **Network Hardening**: Firewall rules, rate limiting, TLS enforcement
+- 🔐 **Authentication Hardening**: PAM hardening, account lockout, optional 2FA
+
+### Monitoring & Management
+- 📊 **Intel Monitor Plugin**: Custom Cockpit plugin for hardware monitoring
+- 🌡️ **Power Profile Control**: Performance, balanced, and powersave modes
+- 📈 **CPU Frequency Display**: Per-core P/E-core monitoring
+- 🔍 **Security Dashboard**: Threat detection and incident response
 
 ---
 
@@ -51,43 +74,61 @@ CockLocker provides comprehensive security hardening for Cockpit, implementing d
 
 ---
 
-## Quick Start - Standalone
+## Quick Start - Intel Meteor Lake
 
 ### Prerequisites
 
-- Debian-based Linux system (Ubuntu 22.04+, Debian 12+)
-- Kernel 5.13+ with Landlock support - see [KERNEL_CONFIG.md](KERNEL_CONFIG.md)
-- Rust toolchain (1.70+) - optional but recommended for sandbox
+- Linux system (Ubuntu 22.04+, Debian 12+, Fedora 38+)
+- Kernel 6.5+ for full NPU support (5.13+ minimum)
+- Intel Meteor Lake, Raptor Lake, or Alder Lake processor
+- Rust toolchain (1.70+) - for sandbox
+- Node.js 18+ and npm - for plugins
 - Root/sudo access for installation
-- 2-3 GB free disk space (for build)
+- 4-5 GB free disk space
 
-### Installation (Recommended)
+### Feature-Complete Installation
 
 ```bash
-# Clone with nested submodules (includes Cockpit)
+# Clone with submodules
 git clone --recurse-submodules https://github.com/SWORDIntel/COCKLOCKER.git
 cd COCKLOCKER
 
-# ✨ UNIFIED ENTRY POINT - All operations flow through ./cocklocker.sh
+# ✨ FEATURE-COMPLETE BUILD FOR METEOR LAKE
 #
-# 1. Detect CPU SIMD capabilities (AVX2/AVX512)
-./cocklocker.sh detect-cpu
+# 1. Build everything (Cockpit + all plugins + Intel optimization)
+./build_feature_complete.sh --profile=meteorlake --plugins=all
 
-# 2. Build hardened Cockpit with AVX2 optimization (recommended)
-./cocklocker.sh build --with-simd=avx2
+# 2. Install to system (requires root)
+sudo ./build_feature_complete.sh install
 
-# 3. Install to system (requires root)
-sudo ./cocklocker.sh install
-
-# 4. Verify security hardening
-./cocklocker.sh verify
-
-# 5. Start service
-sudo systemctl start cockpit-hardened
-sudo systemctl enable cockpit-hardened
+# 3. Enable and start services
+sudo systemctl enable --now cockpit-hardened.socket
+sudo systemctl enable --now cockpit-security-monitor.service
 ```
 
-**Time:** ~20 minutes
+**Time:** ~30 minutes (includes all plugins)
+
+### Quick Build (Minimal)
+
+```bash
+# Faster build with essential plugins only
+./build_feature_complete.sh --profile=meteorlake --plugins=minimal
+
+# Or use legacy entry point
+./cocklocker.sh build --with-simd=avx2
+sudo ./cocklocker.sh install
+```
+
+**Time:** ~15 minutes
+
+### CPU Profile Options
+
+| Profile | Target CPU | Features |
+|---------|-----------|----------|
+| `meteorlake` | 14th Gen Core Ultra | NPU, AVX-VNNI, AMX, CET |
+| `raptorlake` | 13th/14th Gen | AVX-VNNI, CET |
+| `alderlake` | 12th Gen | Hybrid cores, CET |
+| `generic` | Any x86-64 | AVX2, basic hardening |
 
 ### Access
 

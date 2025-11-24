@@ -1,0 +1,32 @@
+{
+    "version": 0,
+    "require": {
+        "cockpit": "300"
+    },
+    "name": "intel-monitor",
+    "priority": 100,
+    "menu": {
+        "index": {
+            "label": "Intel Monitor",
+            "order": 15,
+            "docs": [
+                {
+                    "label": "Intel Hardware Monitoring",
+                    "url": "https://github.com/SWORDIntel/COCKLOCKER"
+                }
+            ],
+            "keywords": [
+                {
+                    "matches": ["intel", "cpu", "npu", "power", "meteor lake", "ai", "temperature", "rapl"]
+                }
+            ]
+        }
+    },
+    "bridges": [
+        {
+            "match": { "payload": "dbus-json3" },
+            "privileged": true,
+            "problem": "not-authorized"
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+[Unit]
+Description=CockLocker - Hardened Cockpit Web Console Socket
+Documentation=https://github.com/SWORDIntel/COCKLOCKER
+
+[Socket]
+ListenStream=9090
+ExecStartPost=/usr/bin/logger -t cockpit-hardened "Socket activated on port 9090"
+
+# Socket options
+Accept=no
+BindIPv6Only=ipv6-only
+FreeBind=yes
+NoDelay=yes
+KeepAlive=yes
+MaxConnections=64
+MaxConnectionsPerSource=10
+
+# Security
+SocketUser=cockpit-ws
+SocketGroup=cockpit-ws
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target
