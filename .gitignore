@@ -36,3 +36,12 @@ fuzzing/corpus/
 
 # Integration reports
 kernel-integration/integration-report.txt
+
+# Plugins (downloaded separately)
+plugins/cockpit-*
+
+# Node modules
+node_modules/
+
+# Compiled NPU manager cache
+IMPLEMENTATION/intel-meteorlake/__pycache__/

@@ -1,0 +1,34 @@
+[Unit]
+Description=CockLocker Security Threat Monitor
+Documentation=https://github.com/SWORDIntel/COCKLOCKER
+After=network.target cockpit-hardened.service
+Wants=cockpit-hardened.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/cockpit-hardened/monitoring/security_monitor.py
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Runtime
+User=root
+Group=root
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cockpit-security
+
+# Security hardening
+NoNewPrivileges=no
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/log/cockpit-hardened
+ReadWritePaths=/opt/cockpit-hardened/var
+
+# Capabilities needed for iptables management
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target

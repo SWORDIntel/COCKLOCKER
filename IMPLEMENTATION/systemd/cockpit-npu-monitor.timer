@@ -1,0 +1,12 @@
+[Unit]
+Description=Timer for Intel NPU Power Monitoring
+Documentation=https://github.com/SWORDIntel/COCKLOCKER
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=60
+AccuracySec=10
+Persistent=true
+
+[Install]
+WantedBy=timers.target

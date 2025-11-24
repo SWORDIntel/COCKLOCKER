@@ -1,0 +1,25 @@
+[Unit]
+Description=Intel NPU Power Monitor for CockLocker
+Documentation=https://github.com/SWORDIntel/COCKLOCKER
+After=cockpit-hardened.service
+BindsTo=cockpit-hardened.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/cockpit-hardened/intel/intel_npu_manager.py status --json
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Runtime
+User=root
+Group=root
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cockpit-npu
+
+# Execute periodically via timer instead of continuously
+# This service is triggered by cockpit-npu-monitor.timer
+
+[Install]
+WantedBy=multi-user.target
