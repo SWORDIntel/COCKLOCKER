@@ -157,7 +157,7 @@ get_optimization_flags() {
         "-fstack-clash-protection"
         "-D_FORTIFY_SOURCE=3"
         "-D_GLIBCXX_ASSERTIONS"
-        "-fPIE"
+        "-fPIC"                # pam_ssh_add builds shared objects; ensure position-independent code
         "-fcf-protection=full"
         "-Wformat"
         "-Wformat-security"
@@ -250,7 +250,6 @@ get_linker_flags() {
     echo "-Wl,-z,noexecstack"
     echo "-Wl,-z,separate-code"
     echo "-Wl,--as-needed"
-    echo "-pie"
 }
 
 # ============================================================================
@@ -620,6 +619,12 @@ verify_build() {
 
     for binary in "${binaries[@]}"; do
         if [ -f "$binary" ]; then
+            # Skip non-ELF (scripts installed via pip/wrappers)
+            if ! file -b "$binary" 2>/dev/null | grep -qE "ELF"; then
+                log_warn "$(basename "$binary"): non-ELF artifact, skipping binary hardening checks"
+                continue
+            fi
+
             # Check PIE
             if readelf -h "$binary" 2>/dev/null | grep -q "Type.*DYN"; then
                 log_success "$(basename "$binary"): PIE enabled"
@@ -628,8 +633,10 @@ verify_build() {
                 ((errors++))
             fi
 
-            # Check stack canary
-            if readelf -s "$binary" 2>/dev/null | grep -q "__stack_chk_fail"; then
+            # Check stack canary (prefer nm -D for robustness)
+            if nm -D "$binary" 2>/dev/null | grep -q "__stack_chk_fail"; then
+                log_success "$(basename "$binary"): Stack canary"
+            elif readelf -s "$binary" 2>/dev/null | grep -q "__stack_chk_fail"; then
                 log_success "$(basename "$binary"): Stack canary"
             else
                 log_fail "$(basename "$binary"): No stack canary"

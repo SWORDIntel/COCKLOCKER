@@ -61,16 +61,16 @@ log_section() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
 declare -A OFFICIAL_PLUGINS=(
     ["cockpit-machines"]="https://github.com/cockpit-project/cockpit-machines.git"
     ["cockpit-podman"]="https://github.com/cockpit-project/cockpit-podman.git"
-    ["cockpit-storaged"]="https://github.com/storaged-project/cockpit-storaged.git"
+    ["cockpit-storaged"]="builtin"  # storaged ships inside main cockpit tree
     ["cockpit-networkmanager"]="builtin"  # Part of main cockpit
-    ["cockpit-packagekit"]="https://github.com/cockpit-project/cockpit-packagekit.git"
+    ["cockpit-packagekit"]="skip"  # repository unavailable upstream
     ["cockpit-ostree"]="https://github.com/cockpit-project/cockpit-ostree.git"
-    ["cockpit-selinux"]="https://github.com/cockpit-project/cockpit-selinux.git"
-    ["cockpit-kdump"]="https://github.com/cockpit-project/cockpit-kdump.git"
-    ["cockpit-sosreport"]="https://github.com/cockpit-project/cockpit-sosreport.git"
+    ["cockpit-selinux"]="skip"  # repository unavailable upstream
+    ["cockpit-kdump"]="skip"  # repository unavailable upstream
+    ["cockpit-sosreport"]="skip"  # repository unavailable upstream
     ["cockpit-files"]="https://github.com/cockpit-project/cockpit-files.git"
     ["cockpit-composer"]="https://github.com/osbuild/cockpit-composer.git"
-    ["cockpit-benchmark"]="https://github.com/cockpit-project/cockpit-benchmark.git"
+    ["cockpit-benchmark"]="skip"  # repository unavailable upstream
 )
 
 # Plugin descriptions
@@ -154,6 +154,11 @@ download_plugin() {
 
     local url="${OFFICIAL_PLUGINS[$plugin]}"
 
+    if [ "$url" = "skip" ]; then
+        log_warn "$plugin marked skip; repository unavailable"
+        return 0
+    fi
+
     if [ "$url" = "builtin" ]; then
         log_info "$plugin is built into core Cockpit"
         return 0
@@ -186,6 +191,11 @@ download_all_plugins() {
 build_plugin() {
     local plugin="$1"
     local plugin_dir="$PLUGINS_DIR/$plugin"
+
+    if [ "${OFFICIAL_PLUGINS[$plugin]:-}" = "skip" ]; then
+        log_warn "$plugin marked skip; skipping build"
+        return 0
+    fi
 
     if [ ! -d "$plugin_dir" ]; then
         log_error "Plugin not downloaded: $plugin"
