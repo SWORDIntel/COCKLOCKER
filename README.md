@@ -1,7 +1,6 @@
 # COCKLOCKER
 **Feature-Complete Cockpit Build with Intel Meteor Lake AI Optimization**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Kernel: 5.13+](https://img.shields.io/badge/Kernel-5.13+-blue.svg)](KERNEL_CONFIG.md)
 [![Security: APT-Level](https://img.shields.io/badge/Security-APT--Level-red.svg)](MISSION.md)
 [![Intel: Meteor Lake](https://img.shields.io/badge/Intel-Meteor%20Lake-0071c5.svg)](DOCUMENTATION/METEORLAKE_AI.md)
@@ -698,9 +697,7 @@ We follow responsible disclosure and will credit researchers.
 
 ## License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
----
+This project is licensed under the **SWORD Restricted Source Licence v1.0 (SRSL-1.0)**. Personal and non-commercial use is permitted under its terms; commercial exploitation requires a separate written agreement. See [LICENSE](LICENSE).
 
 ## Acknowledgments
 
