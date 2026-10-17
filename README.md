@@ -697,7 +697,7 @@ We follow responsible disclosure and will credit researchers.
 
 ## License
 
-This project is licensed under the **SWORD Restricted Source Licence v1.0 (SRSL-1.0)**. Personal and non-commercial use is permitted under its terms; commercial exploitation requires a separate written agreement. See [LICENSE](LICENSE).
+This project is licensed under the **SWORD Restricted Source Licence v1.1 (SRSL-1.1)**. Personal and non-commercial use is permitted under its terms; commercial exploitation requires a separate written agreement. See [LICENSE](LICENSE) and [migration notes](SRSL_MIGRATION.md). Earlier SRSL-1.0 copies retain existing valid permissions.
 
 ## Acknowledgments
 
